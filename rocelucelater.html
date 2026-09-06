@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RoCelucelater</title>
+<style>
+  :root{
+    --bg:#181D24;
+    --panel:#20262E;
+    --panel2:#282F39;
+    --line:#39414D;
+    --text:#EDEEF0;
+    --muted:#8B93A1;
+    --amber:#E8A33D;
+    --amber-dim:#C98A2E;
+    --steel:#5FA8D3;
+    --ok:#6FBF8E;
+    --warn:#D96C6C;
+    --radius:4px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(1200px 600px at 15% -10%, rgba(95,168,211,0.07), transparent), var(--bg);
+    color:var(--text);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    min-height:100vh;
+  }
+
+  /* ---------------- APP SHELL ---------------- */
+  .app{ max-width:480px; margin:0 auto; padding:20px 14px 50px; }
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; padding:0 2px;
+  }
+  header.top h1{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:1.05rem; font-weight:600; margin:0;
+  }
+  header.top h1 .ro{ color:var(--amber); }
+  header.top .greeting{ font-size:0.68rem; color:var(--muted); margin-top:2px; }
+  header.top .cat-name{ font-size:0.72rem; color:var(--muted); }
+
+  /* category tabs - horizontal scroll */
+  .cat-tabs{
+    display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:14px;
+    scrollbar-width:none;
+  }
+  .cat-tabs::-webkit-scrollbar{ display:none; }
+  .cat-tab{
+    flex:0 0 auto;
+    background:var(--panel); border:1px solid var(--line); color:var(--muted);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:0.7rem; letter-spacing:0.02em;
+    padding:9px 12px; border-radius:20px; white-space:nowrap; cursor:pointer;
+    transition: all 0.15s;
+  }
+  .cat-tab.active{ background:var(--amber); color:#181D24; border-color:var(--amber); font-weight:600; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:18px; }
+  .cat-panel{ display:none; }
+  .cat-panel.active{ display:block; }
+
+  /* sub tabs inside a category */
+  .subtabs{ display:flex; gap:2px; background:var(--line); border-radius:var(--radius); padding:2px; margin-bottom:16px; }
+  .subtab{
+    flex:1; background:var(--panel); border:none; color:var(--muted);
+    font-size:0.72rem; padding:9px 4px; cursor:pointer; border-radius:2px; font-family: system-ui, sans-serif;
+  }
+  .subtab.active{ background:var(--panel2); color:var(--amber); }
+  .subpanel{ display:none; }
+  .subpanel.active{ display:block; }
+
+  /* Calculator display + keys (shared basic/scientific) */
+  .display{
+    background:#10141A; border:1px solid var(--line); border-radius:4px;
+    padding:16px 14px 12px; margin-bottom:12px; text-align:right; overflow:hidden;
+  }
+  .display .expr{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:0.8rem; color:var(--muted);
+    min-height:1.1em; white-space:nowrap; overflow-x:auto;
+  }
+  .display .res{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:1.9rem; font-weight:500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .keys{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+  .keys.sci{ grid-template-columns:repeat(5,1fr); }
+  .key{
+    background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:0.98rem; padding:12px 0;
+    border-radius:var(--radius); cursor:pointer; transition: background 0.1s, transform 0.05s;
+  }
+  .key:active{ transform:scale(0.95); }
+  .key:hover{ background:#333B47; }
+  .key.op{ color:var(--amber); }
+  .key.func{ color:var(--steel); font-size:0.78rem; }
+  .key.equals{ background:var(--amber); color:#181D24; font-weight:600; border-color:var(--amber); }
+  .key.equals:hover{ background:var(--amber-dim); }
+  .key.wide{ grid-column:span 2; }
+  .key.toggle-on{ border-color:var(--amber); color:var(--amber); }
+
+  /* form fields */
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:0.75rem; color:var(--muted); margin-bottom:6px; }
+  .field input, .field select{
+    width:100%; background:#10141A; border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:4px; font-family: system-ui, sans-serif; font-size:0.88rem;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--steel); }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  .go-btn{
+    width:100%; background:var(--amber); color:#181D24; border:none; padding:12px;
+    font-weight:600; font-size:0.9rem; border-radius:4px; cursor:pointer; margin-top:4px;
+  }
+  .go-btn:hover{ background:var(--amber-dim); }
+  .toggle-pair{ display:flex; gap:2px; background:var(--line); border-radius:4px; padding:2px; margin-bottom:14px; }
+  .toggle-pair button{
+    flex:1; background:var(--panel); border:none; color:var(--muted); padding:9px; font-size:0.78rem;
+    border-radius:2px; cursor:pointer; font-family: system-ui, sans-serif;
+  }
+  .toggle-pair button.active{ background:var(--panel2); color:var(--amber); }
+
+  .result{ margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; display:none; }
+  .result.show{ display:block; }
+  .result-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .result-grid.two{ grid-template-columns:repeat(2,1fr); }
+  .stat{ background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:10px 6px; text-align:center; }
+  .stat .num{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:1.2rem; color:var(--amber); line-height:1.15; word-break:break-word; }
+  .stat .lbl{ font-size:0.62rem; color:var(--muted); margin-top:4px; }
+  .note{ font-size:0.76rem; color:var(--muted); line-height:1.5; background:var(--panel2); border-left:2px solid var(--steel); padding:9px 11px; border-radius:0 4px 4px 0; }
+  .note b{ color:var(--text); }
+  .tdee-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .tdee-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:4px; background:var(--panel2); border:1px solid var(--line); font-size:0.8rem; }
+  .tdee-row.selected{ border-color:var(--amber); }
+  .tdee-row .v{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; color:var(--amber); font-weight:600; }
+
+  .conv-out{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; font-size:1.5rem; color:var(--amber); text-align:center;
+    background:#10141A; border:1px solid var(--line); border-radius:4px; padding:16px; margin-top:6px; word-break:break-all;
+  }
+  .swap-btn{
+    display:block; margin:0 auto 10px; background:var(--panel2); border:1px solid var(--line); color:var(--steel);
+    border-radius:50%; width:34px; height:34px; cursor:pointer; font-size:0.9rem;
+  }
+
+  .base-grid{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .base-row{ display:flex; justify-content:space-between; align-items:center; background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:10px 12px; }
+  .base-row .base-lbl{ font-size:0.72rem; color:var(--muted); }
+  .base-row .base-val{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace; color:var(--amber); font-size:0.95rem; word-break:break-all; text-align:right; }
+
+  footer.app-footer{ text-align:center; color:var(--muted); font-size:0.65rem; margin-top:20px; letter-spacing:0.02em; }
+
+  @media (max-width:360px){
+    .row3{ grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== MAIN APP ===================== -->
+<div class="app" id="app">
+  <header class="top">
+    <div>
+      <h1><span class="ro">Ro</span>Celucelater</h1>
+      <div class="greeting" id="greeting">नमस्ते 🙏</div>
+    </div>
+    <div class="cat-name" id="cat-name">सामान्य गणना</div>
+  </header>
+
+  <div class="cat-tabs" id="cat-tabs">
+    <button class="cat-tab active" data-cat="basic">सामान्य</button>
+    <button class="cat-tab" data-cat="health">स्वास्थ्य</button>
+    <button class="cat-tab" data-cat="finance">वित्त</button>
+    <button class="cat-tab" data-cat="unit">यूनिट</button>
+    <button class="cat-tab" data-cat="scientific">वैज्ञानिक</button>
+    <button class="cat-tab" data-cat="datetime">तारीख</button>
+    <button class="cat-tab" data-cat="programmer">प्रोग्रामर</button>
+  </div>
+
+  <div class="card">
+
+    <!-- ============ 1. BASIC (BODMAS) ============ -->
+    <div class="cat-panel active" id="cat-basic" data-name="सामान्य गणना">
+      <div class="display">
+        <div class="expr" id="basic-expr">&nbsp;</div>
+        <div class="res" id="basic-res">0</div>
+      </div>
+      <div class="keys">
+        <button class="key func" data-b="(">(</button>
+        <button class="key func" data-b=")">)</button>
+        <button class="key func" data-b="AC">AC</button>
+        <button class="key func" data-b="DEL">⌫</button>
+
+        <button class="key" data-b="7">7</button>
+        <button class="key" data-b="8">8</button>
+        <button class="key" data-b="9">9</button>
+        <button class="key op" data-b="÷">÷</button>
+
+        <button class="key" data-b="4">4</button>
+        <button class="key" data-b="5">5</button>
+        <button class="key" data-b="6">6</button>
+        <button class="key op" data-b="×">×</button>
+
+        <button class="key" data-b="1">1</button>
+        <button class="key" data-b="2">2</button>
+        <button class="key" data-b="3">3</button>
+        <button class="key op" data-b="−">−</button>
+
+        <button class="key" data-b="0">0</button>
+        <button class="key" data-b=".">.</button>
+        <button class="key op" data-b="%">%</button>
+        <button class="key op" data-b="+">+</button>
+
+        <button class="key equals wide" data-b="=" style="grid-column:span 4;">=</button>
+      </div>
+    </div>
+
+    <!-- ============ 2. HEALTH ============ -->
+    <div class="cat-panel" id="cat-health" data-name="स्वास्थ्य और फिटनेस">
+      <div class="subtabs">
+        <button class="subtab active" data-sub="bmi">BMI</button>
+        <button class="subtab" data-sub="cal">कैलोरी</button>
+        <button class="subtab" data-sub="water">पानी</button>
+        <button class="subtab" data-sub="fat">फैट %</button>
+      </div>
+
+      <!-- BMI -->
+      <div class="subpanel active" id="sub-bmi">
+        <div class="row2">
+          <div class="field"><label>लंबाई (cm)</label><input type="number" id="bmi-h" placeholder="170"></div>
+          <div class="field"><label>वज़न (kg)</label><input type="number" id="bmi-w" placeholder="65"></div>
+        </div>
+        <button class="go-btn" id="bmi-go">BMI निकालें</button>
+        <div class="result" id="bmi-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="bmi-val">0</div><div class="lbl">BMI मान</div></div>
+            <div class="stat"><div class="num" id="bmi-cat">-</div><div class="lbl">श्रेणी</div></div>
+          </div>
+          <div class="note">18.5 से कम: <b>कम वज़न</b> · 18.5–24.9: <b>सामान्य</b> · 25–29.9: <b>ज़्यादा वज़न</b> · 30+: <b>मोटापा</b></div>
+        </div>
+      </div>
+
+      <!-- Calorie / BMR -->
+      <div class="subpanel" id="sub-cal">
+        <div class="row2">
+          <div class="field"><label>लिंग</label><select id="cal-gender"><option value="male">पुरुष</option><option value="female">महिला</option></select></div>
+          <div class="field"><label>उम्र (साल)</label><input type="number" id="cal-age" placeholder="25"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>लंबाई (cm)</label><input type="number" id="cal-h" placeholder="170"></div>
+          <div class="field"><label>वज़न (kg)</label><input type="number" id="cal-w" placeholder="65"></div>
+        </div>
+        <div class="field">
+          <label>गतिविधि स्तर</label>
+          <select id="cal-activity">
+            <option value="1.2">बैठे रहने वाला काम</option>
+            <option value="1.375">हल्की एक्सरसाइज (1-3 दिन)</option>
+            <option value="1.55" selected>मध्यम एक्सरसाइज (3-5 दिन)</option>
+            <option value="1.725">भारी एक्सरसाइज (6-7 दिन)</option>
+            <option value="1.9">बहुत भारी (एथलीट)</option>
+          </select>
+        </div>
+        <button class="go-btn" id="cal-go">कैलकुलेट करें</button>
+        <div class="result" id="cal-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="bmr-val">0</div><div class="lbl">BMR kcal/दिन</div></div>
+            <div class="stat"><div class="num" id="tdee-main">0</div><div class="lbl">आपका TDEE kcal/दिन</div></div>
+          </div>
+          <div class="tdee-list" id="tdee-list"></div>
+        </div>
+      </div>
+
+      <!-- Water -->
+      <div class="subpanel" id="sub-water">
+        <div class="field"><label>वज़न (kg)</label><input type="number" id="water-w" placeholder="65"></div>
+        <div class="field">
+          <label>गतिविधि स्तर</label>
+          <select id="water-activity">
+            <option value="1">सामान्य</option>
+            <option value="1.1">मध्यम एक्सरसाइज</option>
+            <option value="1.2">भारी एक्सरसाइज / गर्म मौसम</option>
+          </select>
+        </div>
+        <button class="go-btn" id="water-go">पानी की ज़रूरत निकालें</button>
+        <div class="result" id="water-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="water-l">0</div><div class="lbl">लीटर / दिन</div></div>
+            <div class="stat"><div class="num" id="water-glass">0</div><div class="lbl">गिलास (250ml)</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body Fat -->
+      <div class="subpanel" id="sub-fat">
+        <div class="field"><label>लिंग</label><select id="fat-gender"><option value="male">पुरुष</option><option value="female">महिला</option></select></div>
+        <div class="row2">
+          <div class="field"><label>लंबाई (cm)</label><input type="number" id="fat-h" placeholder="170"></div>
+          <div class="field"><label>गर्दन (cm)</label><input type="number" id="fat-neck" placeholder="38"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>कमर / Waist (cm)</label><input type="number" id="fat-waist" placeholder="85"></div>
+          <div class="field" id="fat-hip-field"><label>कूल्हा / Hip (cm) — केवल महिला</label><input type="number" id="fat-hip" placeholder="95"></div>
+        </div>
+        <button class="go-btn" id="fat-go">फैट % निकालें</button>
+        <div class="result" id="fat-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="fat-val">0%</div><div class="lbl">बॉडी फैट</div></div>
+            <div class="stat"><div class="num" id="fat-cat">-</div><div class="lbl">श्रेणी</div></div>
+          </div>
+          <div class="note">US Navy Method पर आधारित अनुमान। सटीक जांच के लिए डॉक्टर से सलाह लें।</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 3. FINANCE ============ -->
+    <div class="cat-panel" id="cat-finance" data-name="वित्त और ब्याज">
+      <div class="subtabs">
+        <button class="subtab active" data-sub="emi">EMI</button>
+        <button class="subtab" data-sub="interest">ब्याज</button>
+        <button class="subtab" data-sub="gst">GST</button>
+        <button class="subtab" data-sub="sip">SIP</button>
+      </div>
+
+      <!-- EMI -->
+      <div class="subpanel active" id="sub-emi">
+        <div class="field"><label>लोन राशि (₹)</label><input type="number" id="emi-p" placeholder="500000"></div>
+        <div class="row2">
+          <div class="field"><label>ब्याज दर (सालाना %)</label><input type="number" id="emi-r" placeholder="9.5"></div>
+          <div class="field"><label>अवधि (महीने)</label><input type="number" id="emi-n" placeholder="60"></div>
+        </div>
+        <button class="go-btn" id="emi-go">EMI निकालें</button>
+        <div class="result" id="emi-result">
+          <div class="result-grid">
+            <div class="stat"><div class="num" id="emi-val">0</div><div class="lbl">मासिक EMI</div></div>
+            <div class="stat"><div class="num" id="emi-total">0</div><div class="lbl">कुल भुगतान</div></div>
+            <div class="stat"><div class="num" id="emi-interest">0</div><div class="lbl">कुल ब्याज</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interest -->
+      <div class="subpanel" id="sub-interest">
+        <div class="toggle-pair" id="int-type">
+          <button class="active" data-v="simple">साधारण ब्याज</button>
+          <button data-v="compound">चक्रवृद्धि ब्याज</button>
+        </div>
+        <div class="field"><label>मूलधन (₹)</label><input type="number" id="int-p" placeholder="100000"></div>
+        <div class="row2">
+          <div class="field"><label>दर (सालाना %)</label><input type="number" id="int-r" placeholder="8"></div>
+          <div class="field"><label>समय (साल)</label><input type="number" id="int-t" placeholder="3"></div>
+        </div>
+        <div class="field" id="int-freq-field">
+          <label>चक्रवृद्धि आवृत्ति</label>
+          <select id="int-freq">
+            <option value="1">सालाना</option>
+            <option value="2">छमाही</option>
+            <option value="4">तिमाही</option>
+            <option value="12">मासिक</option>
+          </select>
+        </div>
+        <button class="go-btn" id="int-go">ब्याज निकालें</button>
+        <div class="result" id="int-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="int-amt">0</div><div class="lbl">ब्याज राशि</div></div>
+            <div class="stat"><div class="num" id="int-final">0</div><div class="lbl">कुल राशि</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GST -->
+      <div class="subpanel" id="sub-gst">
+        <div class="toggle-pair" id="gst-type">
+          <button class="active" data-v="add">GST जोड़ें</button>
+          <button data-v="remove">GST हटाएं</button>
+        </div>
+        <div class="field"><label>राशि (₹)</label><input type="number" id="gst-amt" placeholder="1000"></div>
+        <div class="field">
+          <label>GST दर</label>
+          <select id="gst-rate">
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18" selected>18%</option>
+            <option value="28">28%</option>
+          </select>
+        </div>
+        <button class="go-btn" id="gst-go">GST कैलकुलेट करें</button>
+        <div class="result" id="gst-result">
+          <div class="result-grid two">
+            <div class="stat"><div class="num" id="gst-tax">0</div><div class="lbl">GST राशि</div></div>
+            <div class="stat"><div class="num" id="gst-net">0</div><div class="lbl">कुल राशि</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIP -->
+      <div class="subpanel" id="sub-sip">
+        <div class="field"><label>मासिक निवेश (₹)</label><input type="number" id="sip-p" placeholder="5000"></div>
+        <div class="row2">
+          <div class="field"><label>अनुमानित रिटर्न (सालाना %)</label><input type="number" id="sip-r" placeholder="12"></div>
+          <div class="field"><label>अवधि (साल)</label><input type="number" id="sip-y" placeholder="10"></div>
+        </div>
+        <button class="go-btn" id="sip-go">SIP कैलकुलेट करें</button>
+        <div class="result" id="sip-result">
+          <div class="result-grid">
+            <div class="stat"><div class="num" id="sip-invested">0</div><div class="lbl">कुल निवेश</div></div>
+            <div class="stat"><div class="num" id="sip-gain">0</div><div class="lbl">अनुमानित लाभ</div></div>
+            <div class="stat"><div class="num" id="sip-total">0</div><div class="lbl">कुल राशि</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 4. UNIT CONVERTER ============ -->
+    <div class="cat-panel" id="cat-unit" data-name="यूनिट बदलें">
+      <div class="field">
+        <label>माप का प्रकार</label>
+        <select id="unit-type">
+          <option value="length">लंबाई</option>
+          <option value="weight">वज़न</option>
+          <option value="temp">तापमान</option>
+          <option value="area">क्षेत्रफल</option>
+          <option value="volume">आयतन</option>
+          <option value="time">समय</option>
+        </select>
+      </div>
+      <div class="field"><label>मान डालें</label><input type="number" id="unit-input" placeholder="1"></div>
+      <div class="row2">
+        <div class="field"><label>से</label><select id="unit-from"></select></div>
+        <div class="field"><label>में</label><select id="unit-to"></select></div>
+      </div>
+      <button class="swap-btn" id="unit-swap" title="बदलें">⇅</button>
+      <button class="go-btn" id="unit-go">बदलें</button>
+      <div class="conv-out" id="unit-out" style="display:none;">0</div>
+    </div>
+
+    <!-- ============ 5. SCIENTIFIC ============ -->
+    <div class="cat-panel" id="cat-scientific" data-name="वैज्ञानिक गणना">
+      <div class="toggle-pair" id="sci-mode">
+        <button class="active" data-v="deg">DEG</button>
+        <button data-v="rad">RAD</button>
+      </div>
+      <div class="display">
+        <div class="expr" id="sci-expr">&nbsp;</div>
+        <div class="res" id="sci-res">0</div>
+      </div>
+      <div class="keys sci">
+        <button class="key func" data-s="sin(">sin</button>
+        <button class="key func" data-s="cos(">cos</button>
+        <button class="key func" data-s="tan(">tan</button>
+        <button class="key func" data-s="log(">log</button>
+        <button class="key func" data-s="ln(">ln</button>
+
+        <button class="key func" data-s="asin(">asin</button>
+        <button class="key func" data-s="acos(">acos</button>
+        <button class="key func" data-s="atan(">atan</button>
+        <button class="key func" data-s="sqrt(">√</button>
+        <button class="key func" data-s="^">x^y</button>
+
+        <button class="key func" data-s="PI">π</button>
+        <button class="key func" data-s="E">e</button>
+        <button class="key func" data-s="(">(</button>
+        <button class="key func" data-s=")">)</button>
+        <button class="key func" data-s="AC">AC</button>
+
+        <button class="key" data-s="7">7</button>
+        <button class="key" data-s="8">8</button>
+        <button class="key" data-s="9">9</button>
+        <button class="key op" data-s="÷">÷</button>
+        <button class="key func" data-s="DEL">⌫</button>
+
+        <button class="key" data-s="4">4</button>
+        <button class="key" data-s="5">5</button>
+        <button class="key" data-s="6">6</button>
+        <button class="key op" data-s="×">×</button>
+        <button class="key op" data-s="%">%</button>
+
+        <button class="key" data-s="1">1</button>
+        <button class="key" data-s="2">2</button>
+        <button class="key" data-s="3">3</button>
+        <button class="key op" data-s="−">−</button>
+        <button class="key equals" data-s="=">=</button>
+
+        <button class="key wide" data-s="0">0</button>
+        <button class="key" data-s=".">.</button>
+        <button class="key op wide" data-s="+">+</button>
+      </div>
+    </div>
+
+    <!-- ============ 6. DATE & TIME ============ -->
+    <div class="cat-panel" id="cat-datetime" data-name="तारीख और समय">
+      <div class="subtabs">
+        <button class="subtab active" data-sub="age">उम्र</button>
+        <button class="subtab" data-sub="datediff">दिनों का अंतर</button>
+      </div>
+
+      <div class="subpanel active" id="sub-age">
+        <div class="field"><label>जन्म तारीख</label><input type="date" id="dob"></div>
+        <div class="field"><label>तारीख तक गणना करें (default: आज)</label><input type="date" id="asof"></div>
+        <button class="go-btn" id="age-go">उम्र निकालें</button>
+        <div class="result" id="age-result">
+          <div class="result-grid">
+            <div class="stat"><div class="num" id="age-y">0</div><div class="lbl">साल</div></div>
+            <div class="stat"><div class="num" id="age-m">0</div><div class="lbl">महीने</div></div>
+            <div class="stat"><div class="num" id="age-d">0</div><div class="lbl">दिन</div></div>
+          </div>
+          <div class="note">कुल दिन: <b id="age-totaldays">0</b> · अगला जन्मदिन: <b id="age-nextbday">-</b> (<span id="age-daysleft">0</span> दिन बाद)</div>
+        </div>
+      </div>
+
+      <div class="subpanel" id="sub-datediff">
+        <div class="field"><label>पहली तारीख</label><input type="date" id="dd-from"></div>
+        <div class="field"><label>दूसरी तारीख</label><input type="date" id="dd-to"></div>
+        <button class="go-btn" id="dd-go">अंतर निकालें</button>
+        <div class="result" id="dd-result">
+          <div class="result-grid">
+            <div class="stat"><div class="num" id="dd-days">0</div><div class="lbl">कुल दिन</div></div>
+            <div class="stat"><div class="num" id="dd-weeks">0</div><div class="lbl">हफ्ते</div></div>
+            <div class="stat"><div class="num" id="dd-months">0</div><div class="lbl">महीने (लगभग)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 7. PROGRAMMER ============ -->
+    <div class="cat-panel" id="cat-programmer" data-name="प्रोग्रामर टूल्स">
+      <div class="subtabs">
+        <button class="subtab active" data-sub="baseconv">नंबर बदलें</button>
+        <button class="subtab" data-sub="bitwise">बिटवाइज़</button>
+      </div>
+
+      <div class="subpanel active" id="sub-baseconv">
+        <div class="row2">
+          <div class="field"><label>मान डालें</label><input type="text" id="bc-input" placeholder="जैसे: 255"></div>
+          <div class="field">
+            <label>यह किस base में है</label>
+            <select id="bc-base">
+              <option value="2">Binary (2)</option>
+              <option value="8">Octal (8)</option>
+              <option value="10" selected>Decimal (10)</option>
+              <option value="16">Hexadecimal (16)</option>
+            </select>
+          </div>
+        </div>
+        <button class="go-btn" id="bc-go">बदलें</button>
+        <div class="base-grid" id="bc-result" style="display:none;">
+          <div class="base-row"><span class="base-lbl">Binary</span><span class="base-val" id="bc-bin">-</span></div>
+          <div class="base-row"><span class="base-lbl">Octal</span><span class="base-val" id="bc-oct">-</span></div>
+          <div class="base-row"><span class="base-lbl">Decimal</span><span class="base-val" id="bc-dec">-</span></div>
+          <div class="base-row"><span class="base-lbl">Hexadecimal</span><span class="base-val" id="bc-hex">-</span></div>
+        </div>
+      </div>
+
+      <div class="subpanel" id="sub-bitwise">
+        <div class="row2">
+          <div class="field"><label>Number A (decimal)</label><input type="number" id="bw-a" placeholder="12"></div>
+          <div class="field"><label>Number B (decimal)</label><input type="number" id="bw-b" placeholder="10"></div>
+        </div>
+        <div class="field">
+          <label>ऑपरेशन</label>
+          <select id="bw-op">
+            <option value="AND">AND (&amp;)</option>
+            <option value="OR">OR (|)</option>
+            <option value="XOR">XOR (^)</option>
+            <option value="NOT">NOT (~A)</option>
+            <option value="LSHIFT">Left Shift (A &lt;&lt; B)</option>
+            <option value="RSHIFT">Right Shift (A &gt;&gt; B)</option>
+          </select>
+        </div>
+        <button class="go-btn" id="bw-go">कैलकुलेट करें</button>
+        <div class="base-grid" id="bw-result" style="display:none;">
+          <div class="base-row"><span class="base-lbl">Decimal परिणाम</span><span class="base-val" id="bw-dec">-</span></div>
+          <div class="base-row"><span class="base-lbl">Binary परिणाम</span><span class="base-val" id="bw-bin">-</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="app-footer">सभी गणना आपके डिवाइस पर ही होती है · कोई डेटा सेव नहीं होता</footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+/* app opens directly on home page — no popup */
+
+/* ======================= CATEGORY NAV ======================= */
+document.querySelectorAll('.cat-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.cat-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = document.getElementById('cat-'+tab.dataset.cat);
+    panel.classList.add('active');
+    document.getElementById('cat-name').textContent = panel.dataset.name;
+  });
+});
+
+/* sub tabs (generic, scoped per category panel) */
+document.querySelectorAll('.cat-panel').forEach(catPanel=>{
+  const subtabs = catPanel.querySelectorAll(':scope > .subtabs > .subtab');
+  subtabs.forEach(st=>{
+    st.addEventListener('click', ()=>{
+      subtabs.forEach(s=>s.classList.remove('active'));
+      catPanel.querySelectorAll(':scope > .subpanel').forEach(p=>p.classList.remove('active'));
+      st.classList.add('active');
+      document.getElementById('sub-'+st.dataset.sub).classList.add('active');
+    });
+  });
+});
+
+/* generic toggle-pair helper */
+function wireTogglePair(id, onChange){
+  const wrap = document.getElementById(id);
+  wrap.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      wrap.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset.v);
+    });
+  });
+}
+
+/* ======================= EXPRESSION PARSER (BODMAS + scientific) ======================= */
+function tokenize(str){
+  const tokens = [];
+  const re = /(\d+\.?\d*)|(sin|cos|tan|asin|acos|atan|log|ln|sqrt)|(PI|E)|([()])|([+\-*/%^])/g;
+  let m;
+  while((m = re.exec(str)) !== null){
+    if(m[1]) tokens.push({t:'num', v: parseFloat(m[1])});
+    else if(m[2]) tokens.push({t:'func', v: m[2]});
+    else if(m[3]) tokens.push({t:'const', v: m[3]});
+    else if(m[4]) tokens.push({t:'paren', v: m[4]});
+    else if(m[5]) tokens.push({t:'op', v: m[5]});
+  }
+  return tokens;
+}
+
+function evaluateExpr(str, angleMode){
+  angleMode = angleMode || 'deg';
+  const norm = str.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  const tokens = tokenize(norm);
+  let pos = 0;
+
+  function peek(){ return tokens[pos]; }
+  function next(){ return tokens[pos++]; }
+
+  function parseExpr(){
+    let val = parseTerm();
+    while(peek() && peek().t==='op' && (peek().v==='+'||peek().v==='-')){
+      const op = next().v;
+      const rhs = parseTerm();
+      val = op==='+' ? val+rhs : val-rhs;
+    }
+    return val;
+  }
+  function parseTerm(){
+    let val = parsePow();
+    while(peek() && peek().t==='op' && (peek().v==='*'||peek().v==='/')){
+      const op = next().v;
+      const rhs = parsePow();
+      val = op==='*' ? val*rhs : val/rhs;
+    }
+    return val;
+  }
+  function parsePow(){
+    let val = parseUnary();
+    if(peek() && peek().t==='op' && peek().v==='^'){
+      next();
+      const rhs = parsePow();
+      val = Math.pow(val, rhs);
+    }
+    return val;
+  }
+  function parseUnary(){
+    if(peek() && peek().t==='op' && peek().v==='-'){
+      next();
+      return -parseUnary();
+    }
+    return parsePostfix();
+  }
+  function parsePostfix(){
+    let val = parsePrimary();
+    while(peek() && peek().t==='op' && peek().v==='%'){
+      next();
+      val = val/100;
+    }
+    return val;
+  }
+  function parsePrimary(){
+    const tok = peek();
+    if(!tok) throw new Error('unexpected end');
+    if(tok.t==='num'){ next(); return tok.v; }
+    if(tok.t==='const'){ next(); return tok.v==='PI' ? Math.PI : Math.E; }
+    if(tok.t==='paren' && tok.v==='('){
+      next();
+      const val = parseExpr();
+      if(peek() && peek().t==='paren' && peek().v===')') next();
+      return val;
+    }
+    if(tok.t==='func'){
+      next();
+      if(peek() && peek().t==='paren' && peek().v==='('){ next(); }
+      const inner = parseExpr();
+      if(peek() && peek().t==='paren' && peek().v===')') next();
+      const toRad = a => angleMode==='deg' ? a*Math.PI/180 : a;
+      const toDeg = a => angleMode==='deg' ? a*180/Math.PI : a;
+      switch(tok.v){
+        case 'sin': return Math.sin(toRad(inner));
+        case 'cos': return Math.cos(toRad(inner));
+        case 'tan': return Math.tan(toRad(inner));
+        case 'asin': return toDeg(Math.asin(inner));
+        case 'acos': return toDeg(Math.acos(inner));
+        case 'atan': return toDeg(Math.atan(inner));
+        case 'log': return Math.log10(inner);
+        case 'ln': return Math.log(inner);
+        case 'sqrt': return Math.sqrt(inner);
+      }
+    }
+    throw new Error('bad token');
+  }
+
+  const result = parseExpr();
+  if(pos !== tokens.length) throw new Error('leftover tokens');
+  return result;
+}
+
+function formatNum(n){
+  if(typeof n !== 'number' || Number.isNaN(n) || !isFinite(n)) return 'त्रुटि';
+  let s = parseFloat(n.toFixed(8)).toString();
+  if(s.replace('-','').length > 14) s = n.toExponential(6);
+  return s;
+}
+
+/* ======================= BASIC CALCULATOR ======================= */
+(function(){
+  let expr = '';
+  const exprEl = document.getElementById('basic-expr');
+  const resEl = document.getElementById('basic-res');
+  function render(){
+    exprEl.textContent = expr || '\u00A0';
+  }
+  document.querySelectorAll('#cat-basic .key').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const b = btn.dataset.b;
+      if(b==='AC'){ expr=''; resEl.textContent='0'; }
+      else if(b==='DEL'){ expr = expr.slice(0,-1); }
+      else if(b==='='){
+        try{
+          const val = evaluateExpr(expr || '0');
+          resEl.textContent = formatNum(val);
+          expr = formatNum(val);
+        }catch(e){ resEl.textContent = 'त्रुटि'; }
+      } else {
+        expr += b;
+      }
+      render();
+    });
+  });
+  render();
+})();
+
+/* ======================= SCIENTIFIC CALCULATOR ======================= */
+(function(){
+  let expr = '';
+  let mode = 'deg';
+  wireTogglePair('sci-mode', v=>{ mode = v; });
+  const exprEl = document.getElementById('sci-expr');
+  const resEl = document.getElementById('sci-res');
+  function render(){ exprEl.textContent = expr || '\u00A0'; }
+  document.querySelectorAll('#cat-scientific .key').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const s = btn.dataset.s;
+      if(s==='AC'){ expr=''; resEl.textContent='0'; }
+      else if(s==='DEL'){ expr = expr.slice(0,-1); }
+      else if(s==='='){
+        try{
+          const val = evaluateExpr(expr || '0', mode);
+          resEl.textContent = formatNum(val);
+          expr = formatNum(val);
+        }catch(e){ resEl.textContent = 'त्रुटि'; }
+      } else {
+        expr += s;
+      }
+      render();
+    });
+  });
+  render();
+})();
+
+/* ======================= HEALTH: BMI ======================= */
+document.getElementById('bmi-go').addEventListener('click', ()=>{
+  const h = parseFloat(document.getElementById('bmi-h').value);
+  const w = parseFloat(document.getElementById('bmi-w').value);
+  if(!h || !w){ alert('कृपया लंबाई और वज़न भरें'); return; }
+  const hm = h/100;
+  const bmi = w/(hm*hm);
+  let cat = bmi<18.5 ? 'कम वज़न' : bmi<25 ? 'सामान्य' : bmi<30 ? 'ज़्यादा वज़न' : 'मोटापा';
+  document.getElementById('bmi-val').textContent = bmi.toFixed(1);
+  document.getElementById('bmi-cat').textContent = cat;
+  document.getElementById('bmi-result').classList.add('show');
+});
+
+/* ======================= HEALTH: Calorie / BMR ======================= */
+document.getElementById('cal-go').addEventListener('click', ()=>{
+  const gender = document.getElementById('cal-gender').value;
+  const age = parseFloat(document.getElementById('cal-age').value);
+  const h = parseFloat(document.getElementById('cal-h').value);
+  const w = parseFloat(document.getElementById('cal-w').value);
+  const activity = parseFloat(document.getElementById('cal-activity').value);
+  if(!age||!h||!w){ alert('कृपया सभी जानकारी भरें'); return; }
+  let bmr = gender==='male' ? (10*w+6.25*h-5*age+5) : (10*w+6.25*h-5*age-161);
+  document.getElementById('bmr-val').textContent = Math.round(bmr).toLocaleString('hi-IN');
+  document.getElementById('tdee-main').textContent = Math.round(bmr*activity).toLocaleString('hi-IN');
+  const levels = [
+    {mult:1.2, label:'बैठे रहने वाला'},
+    {mult:1.375, label:'हल्की एक्सरसाइज'},
+    {mult:1.55, label:'मध्यम एक्सरसाइज'},
+    {mult:1.725, label:'भारी एक्सरसाइज'},
+    {mult:1.9, label:'बहुत भारी'},
+  ];
+  const listEl = document.getElementById('tdee-list');
+  listEl.innerHTML = '';
+  levels.forEach(l=>{
+    const row = document.createElement('div');
+    row.className = 'tdee-row' + (l.mult===activity ? ' selected' : '');
+    row.innerHTML = `<span>${l.label}</span><span class="v">${Math.round(bmr*l.mult).toLocaleString('hi-IN')} kcal</span>`;
+    listEl.appendChild(row);
+  });
+  document.getElementById('cal-result').classList.add('show');
+});
+
+/* ======================= HEALTH: Water ======================= */
+document.getElementById('water-go').addEventListener('click', ()=>{
+  const w = parseFloat(document.getElementById('water-w').value);
+  const activity = parseFloat(document.getElementById('water-activity').value);
+  if(!w){ alert('कृपया वज़न भरें'); return; }
+  const liters = w*0.033*activity;
+  document.getElementById('water-l').textContent = liters.toFixed(2);
+  document.getElementById('water-glass').textContent = Math.round((liters*1000)/250);
+  document.getElementById('water-result').classList.add('show');
+});
+
+/* ======================= HEALTH: Body Fat ======================= */
+document.getElementById('fat-gender').addEventListener('change', (e)=>{
+  document.getElementById('fat-hip-field').style.display = e.target.value==='female' ? 'block' : 'none';
+});
+document.getElementById('fat-go').addEventListener('click', ()=>{
+  const gender = document.getElementById('fat-gender').value;
+  const h = parseFloat(document.getElementById('fat-h').value);
+  const neck = parseFloat(document.getElementById('fat-neck').value);
+  const waist = parseFloat(document.getElementById('fat-waist').value);
+  const hip = parseFloat(document.getElementById('fat-hip').value);
+  if(!h||!neck||!waist || (gender==='female' && !hip)){ alert('कृपया सभी माप भरें'); return; }
+  let bf;
+  if(gender==='male'){
+    bf = 495/(1.0324 - 0.19077*Math.log10(waist-neck) + 0.15456*Math.log10(h)) - 450;
+  } else {
+    bf = 495/(1.29579 - 0.35004*Math.log10(waist+hip-neck) + 0.22100*Math.log10(h)) - 450;
+  }
+  let cat;
+  if(gender==='male'){
+    cat = bf<6?'बहुत कम':bf<14?'एथलेटिक':bf<18?'फिट':bf<25?'सामान्य':'ज़्यादा';
+  } else {
+    cat = bf<14?'बहुत कम':bf<21?'एथलेटिक':bf<25?'फिट':bf<32?'सामान्य':'ज़्यादा';
+  }
+  document.getElementById('fat-val').textContent = bf.toFixed(1)+'%';
+  document.getElementById('fat-cat').textContent = cat;
+  document.getElementById('fat-result').classList.add('show');
+});
+
+/* ======================= FINANCE: EMI ======================= */
+document.getElementById('emi-go').addEventListener('click', ()=>{
+  const p = parseFloat(document.getElementById('emi-p').value);
+  const rAnnual = parseFloat(document.getElementById('emi-r').value);
+  const n = parseFloat(document.getElementById('emi-n').value);
+  if(!p||!rAnnual||!n){ alert('कृपया सभी जानकारी भरें'); return; }
+  const r = rAnnual/12/100;
+  const emi = (p*r*Math.pow(1+r,n)) / (Math.pow(1+r,n)-1);
+  const total = emi*n;
+  const interest = total-p;
+  document.getElementById('emi-val').textContent = '₹'+Math.round(emi).toLocaleString('hi-IN');
+  document.getElementById('emi-total').textContent = '₹'+Math.round(total).toLocaleString('hi-IN');
+  document.getElementById('emi-interest').textContent = '₹'+Math.round(interest).toLocaleString('hi-IN');
+  document.getElementById('emi-result').classList.add('show');
+});
+
+/* ======================= FINANCE: Interest ======================= */
+let interestType = 'simple';
+wireTogglePair('int-type', v=>{
+  interestType = v;
+  document.getElementById('int-freq-field').style.display = v==='compound' ? 'block' : 'none';
+});
+document.getElementById('int-freq-field').style.display = 'none';
+document.getElementById('int-go').addEventListener('click', ()=>{
+  const p = parseFloat(document.getElementById('int-p').value);
+  const r = parseFloat(document.getElementById('int-r').value);
+  const t = parseFloat(document.getElementById('int-t').value);
+  if(!p||!r||!t){ alert('कृपया सभी जानकारी भरें'); return; }
+  let interestAmt, finalAmt;
+  if(interestType==='simple'){
+    interestAmt = (p*r*t)/100;
+    finalAmt = p+interestAmt;
+  } else {
+    const n = parseFloat(document.getElementById('int-freq').value);
+    finalAmt = p*Math.pow(1+(r/100)/n, n*t);
+    interestAmt = finalAmt-p;
+  }
+  document.getElementById('int-amt').textContent = '₹'+Math.round(interestAmt).toLocaleString('hi-IN');
+  document.getElementById('int-final').textContent = '₹'+Math.round(finalAmt).toLocaleString('hi-IN');
+  document.getElementById('int-result').classList.add('show');
+});
+
+/* ======================= FINANCE: GST ======================= */
+let gstType = 'add';
+wireTogglePair('gst-type', v=>{ gstType = v; });
+document.getElementById('gst-go').addEventListener('click', ()=>{
+  const amt = parseFloat(document.getElementById('gst-amt').value);
+  const rate = parseFloat(document.getElementById('gst-rate').value);
+  if(!amt){ alert('कृपया राशि भरें'); return; }
+  let tax, net;
+  if(gstType==='add'){
+    tax = amt*rate/100;
+    net = amt+tax;
+  } else {
+    net = amt;
+    const base = amt/(1+rate/100);
+    tax = amt-base;
+    net = amt;
+  }
+  document.getElementById('gst-tax').textContent = '₹'+tax.toFixed(2);
+  document.getElementById('gst-net').textContent = '₹'+net.toFixed(2);
+  document.getElementById('gst-result').classList.add('show');
+});
+
+/* ======================= FINANCE: SIP ======================= */
+document.getElementById('sip-go').addEventListener('click', ()=>{
+  const p = parseFloat(document.getElementById('sip-p').value);
+  const rAnnual = parseFloat(document.getElementById('sip-r').value);
+  const years = parseFloat(document.getElementById('sip-y').value);
+  if(!p||!rAnnual||!years){ alert('कृपया सभी जानकारी भरें'); return; }
+  const i = rAnnual/12/100;
+  const n = years*12;
+  const maturity = p * ((Math.pow(1+i,n)-1)/i) * (1+i);
+  const invested = p*n;
+  const gain = maturity-invested;
+  document.getElementById('sip-invested').textContent = '₹'+Math.round(invested).toLocaleString('hi-IN');
+  document.getElementById('sip-gain').textContent = '₹'+Math.round(gain).toLocaleString('hi-IN');
+  document.getElementById('sip-total').textContent = '₹'+Math.round(maturity).toLocaleString('hi-IN');
+  document.getElementById('sip-result').classList.add('show');
+});
+
+/* ======================= UNIT CONVERTER ======================= */
+const UNIT_GROUPS = {
+  length: { base:'m', units:{ mm:0.001, cm:0.01, m:1, km:1000, inch:0.0254, foot:0.3048, yard:0.9144, mile:1609.344 },
+            labels:{mm:'मिलीमीटर',cm:'सेंटीमीटर',m:'मीटर',km:'किलोमीटर',inch:'इंच',foot:'फुट',yard:'गज़',mile:'मील'} },
+  weight: { base:'kg', units:{ mg:0.000001, g:0.001, kg:1, ton:1000, ounce:0.0283495, pound:0.453592 },
+            labels:{mg:'मिलीग्राम',g:'ग्राम',kg:'किलोग्राम',ton:'टन',ounce:'औंस',pound:'पाउंड'} },
+  area: { base:'sqm', units:{ sqmm:0.000001, sqcm:0.0001, sqm:1, sqkm:1000000, hectare:10000, sqft:0.092903, acre:4046.86 },
+          labels:{sqmm:'वर्ग मिमी',sqcm:'वर्ग सेमी',sqm:'वर्ग मीटर',sqkm:'वर्ग किमी',hectare:'हेक्टेयर',sqft:'वर्ग फुट',acre:'एकड़'} },
+  volume: { base:'l', units:{ ml:0.001, l:1, cubicm:1000, gallon:3.78541, cubicft:28.3168 },
+            labels:{ml:'मिलीलीटर',l:'लीटर',cubicm:'क्यूबिक मीटर',gallon:'गैलन (US)',cubicft:'क्यूबिक फुट'} },
+  time: { base:'sec', units:{ sec:1, min:60, hour:3600, day:86400, week:604800, month:2592000, year:31536000 },
+          labels:{sec:'सेकंड',min:'मिनट',hour:'घंटा',day:'दिन',week:'हफ्ता',month:'महीना (30 दिन)',year:'साल (365 दिन)'} },
+  temp: { units:{ c:'c', f:'f', k:'k' }, labels:{c:'सेल्सियस (°C)', f:'फ़ारेनहाइट (°F)', k:'केल्विन (K)'} }
+};
+
+function populateUnitSelects(type){
+  const group = UNIT_GROUPS[type];
+  const fromSel = document.getElementById('unit-from');
+  const toSel = document.getElementById('unit-to');
+  fromSel.innerHTML = ''; toSel.innerHTML = '';
+  Object.keys(group.units).forEach((key, idx)=>{
+    const opt1 = document.createElement('option');
+    opt1.value = key; opt1.textContent = group.labels[key];
+    const opt2 = opt1.cloneNode(true);
+    fromSel.appendChild(opt1);
+    toSel.appendChild(opt2);
+  });
+  if(toSel.options.length>1) toSel.selectedIndex = 1;
+}
+populateUnitSelects('length');
+document.getElementById('unit-type').addEventListener('change', (e)=>{
+  populateUnitSelects(e.target.value);
+  document.getElementById('unit-out').style.display='none';
+});
+document.getElementById('unit-swap').addEventListener('click', ()=>{
+  const fromSel = document.getElementById('unit-from');
+  const toSel = document.getElementById('unit-to');
+  const tmp = fromSel.value;
+  fromSel.value = toSel.value;
+  toSel.value = tmp;
+});
+function convertTemp(v, from, to){
+  let c;
+  if(from==='c') c=v; else if(from==='f') c=(v-32)*5/9; else c=v-273.15;
+  if(to==='c') return c; if(to==='f') return c*9/5+32; return c+273.15;
+}
+document.getElementById('unit-go').addEventListener('click', ()=>{
+  const type = document.getElementById('unit-type').value;
+  const val = parseFloat(document.getElementById('unit-input').value);
+  const from = document.getElementById('unit-from').value;
+  const to = document.getElementById('unit-to').value;
+  if(isNaN(val)){ alert('कृपया मान डालें'); return; }
+  let result;
+  if(type==='temp'){
+    result = convertTemp(val, from, to);
+  } else {
+    const group = UNIT_GROUPS[type];
+    const inBase = val*group.units[from];
+    result = inBase/group.units[to];
+  }
+  const out = document.getElementById('unit-out');
+  out.textContent = formatNum(result) + ' ' + UNIT_GROUPS[type].labels[to];
+  out.style.display = 'block';
+});
+
+/* ======================= DATE & TIME: Age ======================= */
+document.getElementById('asof').valueAsDate = new Date();
+document.getElementById('age-go').addEventListener('click', ()=>{
+  const dobVal = document.getElementById('dob').value;
+  if(!dobVal){ alert('कृपया जन्म तारीख डालें'); return; }
+  const asofVal = document.getElementById('asof').value || new Date().toISOString().slice(0,10);
+  const dob = new Date(dobVal+'T00:00:00');
+  const asof = new Date(asofVal+'T00:00:00');
+  if(dob>asof){ alert('जन्म तारीख पहले की होनी चाहिए'); return; }
+  let years = asof.getFullYear()-dob.getFullYear();
+  let months = asof.getMonth()-dob.getMonth();
+  let days = asof.getDate()-dob.getDate();
+  if(days<0){ months-=1; const prevMonth = new Date(asof.getFullYear(), asof.getMonth(), 0); days += prevMonth.getDate(); }
+  if(months<0){ years-=1; months+=12; }
+  const totalDays = Math.round((asof-dob)/(1000*60*60*24));
+  let nextBday = new Date(asof.getFullYear(), dob.getMonth(), dob.getDate());
+  if(nextBday<asof) nextBday.setFullYear(asof.getFullYear()+1);
+  const daysLeft = Math.round((nextBday-asof)/(1000*60*60*24));
+  document.getElementById('age-y').textContent = years;
+  document.getElementById('age-m').textContent = months;
+  document.getElementById('age-d').textContent = days;
+  document.getElementById('age-totaldays').textContent = totalDays.toLocaleString('hi-IN');
+  document.getElementById('age-nextbday').textContent = nextBday.toLocaleDateString('hi-IN',{day:'2-digit',month:'long'});
+  document.getElementById('age-daysleft').textContent = daysLeft;
+  document.getElementById('age-result').classList.add('show');
+});
+
+/* ======================= DATE & TIME: Date Diff ======================= */
+document.getElementById('dd-go').addEventListener('click', ()=>{
+  const fromVal = document.getElementById('dd-from').value;
+  const toVal = document.getElementById('dd-to').value;
+  if(!fromVal||!toVal){ alert('कृपया दोनों तारीखें भरें'); return; }
+  const from = new Date(fromVal+'T00:00:00');
+  const to = new Date(toVal+'T00:00:00');
+  const days = Math.round(Math.abs(to-from)/(1000*60*60*24));
+  document.getElementById('dd-days').textContent = days.toLocaleString('hi-IN');
+  document.getElementById('dd-weeks').textContent = (days/7).toFixed(1);
+  document.getElementById('dd-months').textContent = (days/30.44).toFixed(1);
+  document.getElementById('dd-result').classList.add('show');
+});
+
+/* ======================= PROGRAMMER: Base Converter ======================= */
+document.getElementById('bc-go').addEventListener('click', ()=>{
+  const raw = document.getElementById('bc-input').value.trim();
+  const base = parseInt(document.getElementById('bc-base').value);
+  if(!raw){ alert('कृपया मान डालें'); return; }
+  const dec = parseInt(raw, base);
+  if(isNaN(dec)){ alert('अमान्य मान इस base के लिए'); return; }
+  document.getElementById('bc-bin').textContent = dec.toString(2);
+  document.getElementById('bc-oct').textContent = dec.toString(8);
+  document.getElementById('bc-dec').textContent = dec.toString(10);
+  document.getElementById('bc-hex').textContent = dec.toString(16).toUpperCase();
+  document.getElementById('bc-result').style.display = 'flex';
+});
+
+/* ======================= PROGRAMMER: Bitwise ======================= */
+document.getElementById('bw-go').addEventListener('click', ()=>{
+  const a = parseInt(document.getElementById('bw-a').value);
+  const b = parseInt(document.getElementById('bw-b').value);
+  const op = document.getElementById('bw-op').value;
+  if(isNaN(a) || (isNaN(b) && op!=='NOT')){ alert('कृपया वैध नंबर डालें'); return; }
+  let result;
+  switch(op){
+    case 'AND': result = a & b; break;
+    case 'OR': result = a | b; break;
+    case 'XOR': result = a ^ b; break;
+    case 'NOT': result = ~a; break;
+    case 'LSHIFT': result = a << b; break;
+    case 'RSHIFT': result = a >> b; break;
+  }
+  document.getElementById('bw-dec').textContent = result;
+  document.getElementById('bw-bin').textContent = result<0 ? (result>>>0).toString(2) : result.toString(2);
+  document.getElementById('bw-result').style.display = 'flex';
+});
+
+}); // end DOMContentLoaded
+</script>
+
+</body>
+</html>
